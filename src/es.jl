@@ -113,3 +113,18 @@ function es(  objfun::Function, N::Int;
 
     return population[1], fitness[1], count, store
 end
+
+function es(objfun::Function, individual::Vector{T}; kwargs...) where {T<:Real}
+    individualSize = length(individual)
+    return es(objfun, individualSize; initPopulation=individual, kwargs...)
+end
+
+function es(objfun::Function, population::Vector{T}; kwargs...) where {T<:Vector}
+    individualSize = first(population) |> length
+    return es(objfun, individualSize; initPopulation=population, kwargs...)
+end
+
+function es(objfun::Function, population::Matrix{T}; kwargs...) where {T<:Real}
+    return es(objfun, [population[:,i] for i in axes(population, 2)], kwargs...)
+end
+
