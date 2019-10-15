@@ -12,7 +12,13 @@
     N = 30
     P = 25
     terminate(strategy) = strategy[:σ] < 1e-10
-    initial = ones(N)
+
+    # Various ways to initialize population
+    result, fitness, cnt = es(sphere, N)
+    result, fitness, cnt = es(sphere, N, creation=(n)->2*rand(n))
+    result, fitness, cnt = es(sphere, rand(N))
+    result, fitness, cnt = es(sphere, rand(N,P))
+    result, fitness, cnt = es(sphere, [rand(N) for i in 1:P])
 
     # Testing: (μ/μ_I, λ)-σ-Self-Adaptation-ES
     # with isotropic mutation operator y' := y + σ(N_1(0, 1), ..., N_N(0, 1))

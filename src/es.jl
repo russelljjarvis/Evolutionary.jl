@@ -10,22 +10,24 @@
 # Comma-selection (μ<λ must hold): parents are deterministically selected from the set of the offspring
 # Plus-selection: parents are deterministically selected from the set of both the parents and offspring
 #
-function es(  objfun::Function, N::Int;
-              initPopulation::Individual = ones(N),
+# Parameters:
+# - objfun: the optimized objective function
+# - population: the population array of individuals of type `T`
+#
+function es(  objfun::Function, population::Vector{T};
               initStrategy::Strategy = strategy(),
               recombination::Function = (rs->rs[1]),
               srecombination::Function = (ss->ss[1]),
               mutation::Function = ((r,m)->r),
               smutation::Function = (s->s),
               termination::Function = (x->false),
-              creation::Function = (n -> rand(n)),
               μ::Integer = 1,
               ρ::Integer = μ,
               λ::Integer = 1,
               selection::Symbol = :plus,
-              iterations::Integer = N*100,
+              iterations::Integer = length(population)*100,
               verbose = false, debug = false,
-              interim = false)
+              interim = false) where {T}
 
     @assert ρ <= μ "Number of parents involved in the procreation of an offspring should be no more then total number of parents"
     if selection == :comma
@@ -35,21 +37,10 @@ function es(  objfun::Function, N::Int;
     store = Dict{Symbol,Any}()
 
     # Initialize parent population
-    individual = getIndividual(initPopulation, N)
-    population = fill(individual, μ)
+    @assert length(population) >= μ "Population size cannot be less then μ=$μ"
+    resize!(population, μ)
     fitness = zeros(μ)
-    for i in 1:μ
-        if isa(initPopulation, Vector)
-            population[i] = initPopulation.*rand(N)
-        elseif isa(initPopulation, Matrix)
-            population[i] = initPopulation[:, i]
-        else # Creation function
-            population[i] = initPopulation(N)
-        end
-        fitness[i] = objfun(population[i])
-        debug && println("INIT $(i): $(population[i]) : $(fitness[i])")
-    end
-    offspring = Array{typeof(individual)}(undef, λ)
+    offspring = Array{T}(undef, λ)
     fitoff = fill(Inf, λ)
     stgpop = fill(initStrategy, μ)
     stgoff = fill(initStrategy, λ)
@@ -115,17 +106,21 @@ function es(  objfun::Function, N::Int;
     return population[1], fitness[1], count, store
 end
 
-function es(objfun::Function, individual::Vector{T}; kwargs...) where {T<:Real}
-    individualSize = length(individual)
-    return es(objfun, individualSize; initPopulation=individual, kwargs...)
+# Spawn population from one individual
+function es(objfun::Function, individual::Vector{T}; μ::Integer=1, kwargs...) where {T<:Real}
+    N = length(individual)
+    population = [individual .* rand(T, N) for i in 1:μ]
+    return es(objfun, population; μ=μ, kwargs...)
 end
 
-function es(objfun::Function, population::Vector{T}; kwargs...) where {T<:Vector}
-    individualSize = first(population) |> length
-    return es(objfun, individualSize; initPopulation=population, kwargs...)
-end
-
+# Spawn population from matrix of individuals
 function es(objfun::Function, population::Matrix{T}; kwargs...) where {T<:Real}
-    return es(objfun, [population[:,i] for i in axes(population, 2)], kwargs...)
+    μ = size(population, 2)
+    return es(objfun, [population[:,i] for i in axes(population, 2)]; μ=μ, kwargs...)
+end
+
+# Spawn population using creation function and individual size
+function es(objfun::Function, N::Int; creation=(n)->rand(n), μ::Integer=1, kwargs...)
+    return es(objfun, [creation(N) for i in 1:μ]; μ=μ, kwargs...)
 end
 
