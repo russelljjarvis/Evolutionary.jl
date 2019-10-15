@@ -18,6 +18,7 @@ function es(  objfun::Function, N::Int;
               mutation::Function = ((r,m)->r),
               smutation::Function = (s->s),
               termination::Function = (x->false),
+              creation::Function = (n -> rand(n)),
               μ::Integer = 1,
               ρ::Integer = μ,
               λ::Integer = 1,
