@@ -21,12 +21,11 @@ function es(  objfun::Function, population::Vector{T};
               mutation::Function = ((r,m)->r),
               smutation::Function = (s->s),
               termination::Function = (x->false),
-              μ::Integer = 1,
+              μ::Integer = length(population),
               ρ::Integer = μ,
               λ::Integer = 1,
               selection::Symbol = :plus,
               iterations::Integer = length(population)*100,
-              verbose = false, debug = false,
               interim = false) where {T}
 
     @assert ρ <= μ "Number of parents involved in the procreation of an offspring should be no more then total number of parents"
@@ -100,7 +99,7 @@ function es(  objfun::Function, population::Vector{T};
         if count == iterations || termination(stgpop[1])
             break
         end
-        verbose && println("BEST: $(fitness[1]): $(stgpop[1])")
+        @debug "Iteration: $count" best_fitness=fitness[1] strategy=stgpop[1]
     end
 
     return population[1], fitness[1], count, store
@@ -110,17 +109,16 @@ end
 function es(objfun::Function, individual::Vector{T}; μ::Integer=1, kwargs...) where {T<:Real}
     N = length(individual)
     population = [individual .* rand(T, N) for i in 1:μ]
-    return es(objfun, population; μ=μ, kwargs...)
+    return es(objfun, population; kwargs...)
 end
 
 # Spawn population from matrix of individuals
 function es(objfun::Function, population::Matrix{T}; kwargs...) where {T<:Real}
     μ = size(population, 2)
-    return es(objfun, [population[:,i] for i in axes(population, 2)]; μ=μ, kwargs...)
+    return es(objfun, [population[:,i] for i in axes(population, 2)]; kwargs...)
 end
 
 # Spawn population using creation function and individual size
 function es(objfun::Function, N::Int; creation=(n)->rand(n), μ::Integer=1, kwargs...)
-    return es(objfun, [creation(N) for i in 1:μ]; μ=μ, kwargs...)
+    return es(objfun, [creation(N) for i in 1:μ]; kwargs...)
 end
-

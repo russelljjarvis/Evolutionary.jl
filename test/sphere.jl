@@ -13,21 +13,29 @@
     P = 25
     terminate(strategy) = strategy[:σ] < 1e-10
 
-    # Various ways to initialize population
-    result, fitness, cnt = es(sphere, N)
-    result, fitness, cnt = es(sphere, N, creation=(n)->2*rand(n))
-    result, fitness, cnt = es(sphere, rand(N))
-    result, fitness, cnt = es(sphere, rand(N,P))
-    result, fitness, cnt = es(sphere, [rand(N) for i in 1:P])
-
     # Testing: (μ/μ_I, λ)-σ-Self-Adaptation-ES
     # with isotropic mutation operator y' := y + σ(N_1(0, 1), ..., N_N(0, 1))
-    result, fitness, cnt = es(sphere, N;
+    es_params = (
         initStrategy = strategy(σ = 1.0, τ = 1/sqrt(2*N)),
         recombination = average, srecombination = averageSigma1,
         mutation = isotropic, smutation = isotropicSigma,
         termination = terminate, selection=:comma,
-        μ = 3, λ = P, iterations = 1000)
+        μ = 3, λ = P, iterations = 1000
+    )
+    result, fitness, cnt = es(sphere, N; es_params...)
+    println("(3/3,$(P))-σ-SA-ES => F: $(fitness), C: $(cnt)")
+    test_result(result, fitness, N, 1e-5)
+
+    # Various ways to initialize population
+    result, fitness, cnt = es(sphere, N, creation=(n)->2*rand(n); es_params...)
+    println("(3/3,$(P))-σ-SA-ES => F: $(fitness), C: $(cnt)")
+    test_result(result, fitness, N, 1e-5)
+
+    result, fitness, cnt = es(sphere, rand(N); es_params...)
+    println("(3/3,$(P))-σ-SA-ES => F: $(fitness), C: $(cnt)")
+    test_result(result, fitness, N, 1e-5)
+
+    result, fitness, cnt = es(sphere, rand(N, P); es_params...)
     println("(3/3,$(P))-σ-SA-ES => F: $(fitness), C: $(cnt)")
     test_result(result, fitness, N, 1e-5)
 
