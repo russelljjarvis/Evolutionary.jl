@@ -1,19 +1,25 @@
 # Evolution Strategy
 # ==================
-#
-# Implementation: (μ/ρ(+/,)λ)-ES
-#
-# μ is the number of parents
-# ρ ≤ μ the mixing number (i.e., the number of parents involved in the procreation of an offspring)
-# λ is the number of offspring.
-#
-# Comma-selection (μ<λ must hold): parents are deterministically selected from the set of the offspring
-# Plus-selection: parents are deterministically selected from the set of both the parents and offspring
-#
-# Parameters:
-# - objfun: the optimized objective function
-# - population: the population array of individuals of type `T`
-#
+"""
+    es(objfun::Function, population::Vector{T}; kwargs...)
+
+Optimization of the objective function `objfun` with the initial `population` of values
+using (μ/ρ(+/,)λ)-Evolution Strategy algorithm.
+
+Keyword arguments:
+- `μ::Integer`, the number of parents
+- `ρ::Integer`, the mixing number, ρ ≤ μ, (i.e., the number of parents involved in the procreation of an offspring)
+- `λ::Integer`, the number of offspring
+- `selection::Symbol`, the selection strategy
+    - `:comma`, Comma-selection (μ<λ must hold): parents are deterministically selected from the set of the offspring
+    - `:plus`, Plus-selection: parents are deterministically selected from the set of both the parents and offspring
+- `recombination::Function`, the recombination function for an individual
+- `mutation::Function`, the mutation function for an individual
+- `srecombination::Function`, the recombination function for a strategy
+- `smutation::Function`, the mutation function for an strategy
+- `initStrategy`, the initial algorithm strategy
+- `maxiter::Integer`, the maximum number of algorithm iterations
+"""
 function es(  objfun::Function, population::Vector{T};
               initStrategy::Strategy = strategy(),
               recombination::Function = (rs->rs[1]),
@@ -25,7 +31,7 @@ function es(  objfun::Function, population::Vector{T};
               ρ::Integer = μ,
               λ::Integer = 1,
               selection::Symbol = :plus,
-              iterations::Integer = length(population)*100,
+              maxiter::Integer = length(population)*100,
               interim = false) where {T}
 
     @assert ρ <= μ "Number of parents involved in the procreation of an offspring should be no more then total number of parents"
@@ -96,7 +102,7 @@ function es(  objfun::Function, population::Vector{T};
 
         # termination condition
         count += 1
-        if count == iterations || termination(stgpop[1])
+        if count == maxiter || termination(stgpop[1])
             break
         end
         @debug "Iteration: $count" best_fitness=fitness[1] strategy=stgpop[1]
