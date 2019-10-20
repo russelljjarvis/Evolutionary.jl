@@ -7,7 +7,7 @@
     end
 
 	# Objective function
-	rosenbrock(x::Vector{Float64}) = (1.0 - x[1])^2 + 100.0 * (x[2] - x[1]^2)^2
+	rosenbrock(x::Vector{Float64}) = 100.0 * (x[2] - x[1]^2)^2 + (x[1] - 1)^2
 
 	# Parameters
 	N = 2
@@ -18,29 +18,27 @@
 	result, fitness, cnt = es(rosenbrock, N;
         initStrategy = strategy(σ = 1.0),
         recombination = average, mutation = isotropic,
-        μ = 15, ρ = 5, λ = 100, iterations = 1000)
+        μ = 15, ρ = 5, λ = 100, maxiter = 1000)
 	println("(15/5+100)-ES => F: $(fitness), C: $(cnt), OBJ: $(result)")
 	test_result(result, fitness, N, 1e-1)
 
 	# Testing: (15/15+100)-σ-Self-Adaptation-ES
 	# with isotropic mutation operator y' := y + σ(N_1(0, 1), ..., N_N(0, 1))
-	result, fitness, cnt = es(rosenbrock, N;
-		initPopulation = [.5, .5],
+	result, fitness, cnt = es(rosenbrock, [-2.048, 2.048];
         initStrategy = strategy(σ = 1.0, τ = 1/sqrt(2*N)),
 		recombination = average, srecombination = averageSigma1,
 		mutation = isotropic, smutation = isotropicSigma,
-		μ = 15, λ = 100, iterations = 1000)
+		μ = 15, λ = 100, maxiter = 1000)
 	println("(15/15+100)-σ-SA-ES-IS => F: $(fitness), C: $(cnt), OBJ: $(result)")
 	test_result(result, fitness, N, 1e-1)
 
 	# Testing: (15/15+100)-σ-Self-Adaptation-ES
 	# with non-isotropic mutation operator y' := y + (σ_1 N_1(0, 1), ..., σ_N N_N(0, 1))
-	result, fitness, cnt = es(rosenbrock, N;
-		initPopulation = rand(N,25),
+	result, fitness, cnt = es(rosenbrock, rand(N,25);
         initStrategy = strategy(σ = .5ones(N), τ = 1/sqrt(2*N), τ0 = 1/sqrt(N)),
 		recombination = average, srecombination = averageSigmaN,
 		mutation = anisotropic, smutation = anisotropicSigma,
-		μ = 15, λ = 100, iterations = 1000)
+		μ = 15, λ = 100, maxiter = 1000)
 	println("(15/15+100)-σ-SA-ES-AS => F: $(fitness), C: $(cnt), OBJ: $(result)")
 	test_result(result, fitness, N, 1e-1)
 

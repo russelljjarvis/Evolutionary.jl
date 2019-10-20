@@ -17,13 +17,14 @@ Keyword arguments:
 - `mutation::Function`, the mutation function for an individual
 - `srecombination::Function`, the recombination function for a strategy
 - `smutation::Function`, the mutation function for an strategy
-- `initStrategy`, the initial algorithm strategy
+- `initStrategy::Strategy`, the initial algorithm strategy
+- `extremum::Symbol`, the optimization direction (:min or :max), by default minimum
 - `maxiter::Integer`, the maximum number of algorithm iterations
 """
 function es(  objfun::Function, population::Vector{T};
               initStrategy::Strategy = strategy(),
-              recombination::Function = (rs->rs[1]),
-              srecombination::Function = (ss->ss[1]),
+              recombination::Function = (rs->copy(first(rs))),
+              srecombination::Function = (ss->first(ss)),
               mutation::Function = ((r,m)->r),
               smutation::Function = (s->s),
               termination::Function = (x->false),
@@ -31,6 +32,7 @@ function es(  objfun::Function, population::Vector{T};
               ρ::Integer = μ,
               λ::Integer = 1,
               selection::Symbol = :plus,
+              extremum::Symbol = :min,
               maxiter::Integer = length(population)*100,
               interim = false) where {T}
 
@@ -38,41 +40,45 @@ function es(  objfun::Function, population::Vector{T};
     if selection == :comma
         @assert μ < λ "Offspring population must be larger then parent population"
     end
+    ismax = extremum == :max
 
     store = Dict{Symbol,Any}()
 
     # Initialize parent population
     @assert length(population) >= μ "Population size cannot be less then μ=$μ"
     resize!(population, μ)
-    fitness = zeros(μ)
+    fitness = map(objfun, population)
     offspring = Array{T}(undef, λ)
     fitoff = fill(Inf, λ)
     stgpop = fill(initStrategy, μ)
     stgoff = fill(initStrategy, λ)
+    popidxs = collect(1:μ)
+    popidxselection = view(popidxs, 1:ρ)
 
     keep(interim, :fitness, copy(fitness), store)
 
     # Generation cycle
-    count = 0
+    itr = 1
+    bestFitness = 0.0
+    fittol = 0.0
+    fittolitr = 1
     while true
 
         for i in 1:λ
+            # Pick randomly ρ parents
+            shuffle!(popidxs)
+
             # Recombine the ρ selected parents to form a recombinant individual
-            if ρ == 1
-                j = rand(1:μ)
-                recombinantStrategy = stgpop[j]
-                recombinant = copy(population[j])
-            else
-                idx = randperm(μ)[1:ρ]
-                recombinantStrategy = srecombination(stgpop[idx])
-                recombinant = recombination(population[idx])
-            end
+            recombinantStrategy = srecombination(stgpop[popidxselection])
+            # recombination creates new copy of the individual
+            recombinant = recombination(population[popidxselection])
 
             # Mutate the strategy parameter set of the recombinant
             stgoff[i] = smutation(recombinantStrategy)
 
             # Mutate the objective parameter set of the recombinant using the mutated strategy parameter set
             # to control the statistical properties of the object parameter mutation
+            # The recombinant is mutated in-place
             offspring[i] = mutation(recombinant, stgoff[i])
 
             # Evaluate fitness
@@ -81,7 +87,7 @@ function es(  objfun::Function, population::Vector{T};
 
         # Select new parent population
         if selection == :plus
-            idx = sortperm(vcat(fitness, fitoff))[1:μ]
+            idx = sortperm(vcat(fitness, fitoff), rev=ismax)[1:μ]
             skip = idx[idx.<=μ]
             for i = 1:μ
                 if idx[i] ∉ skip
@@ -92,23 +98,31 @@ function es(  objfun::Function, population::Vector{T};
                 end
             end
         else
-            idx = sortperm(fitoff)[1:μ]
+            idx = sortperm(fitoff, rev=ismax)[1:μ]
             population = offspring[idx]
             stgpop = stgoff[idx]
             fitness = fitoff[idx]
         end
+
+        # calculate fitness tolerance
+        curGenFitness = first(fitness)
+        fittol = abs(bestFitness - curGenFitness)
+        bestFitness = curGenFitness
+
+        # save state
         keep(interim, :fitness, copy(fitness), store)
         keep(interim, :fitoff, copy(fitoff), store)
 
+        @debug "Iteration: $itr" best_fitness=bestFitness best_individual="$(first(population))" strategy=stgpop[1]
+
         # termination condition
-        count += 1
-        if count == maxiter || termination(stgpop[1])
+        if itr == maxiter || termination(stgpop[1])
             break
         end
-        @debug "Iteration: $count" best_fitness=fitness[1] strategy=stgpop[1]
+        itr += 1
     end
 
-    return population[1], fitness[1], count, store
+    return first(population), first(fitness), itr, store
 end
 
 # Spawn population from one individual

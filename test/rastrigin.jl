@@ -28,7 +28,7 @@
             mutation = anisotropic, smutation = anisotropicSigma,
             selection=:comma,
             μ = 15, λ = P,
-            iterations = 1000)
+            maxiter = 1000)
     println("(15/15,$(P))-σ-SA-ES-AS => F: $(fitness), C: $(cnt), OBJ: $(result)")
     test_result(result, fitness, N, 1e-1)
 

@@ -6,7 +6,7 @@
     end
 
     # Objective function
-    sphere(x::T) where {T <: Vector} = sum(x.*x)
+    sphere(x::AbstractVector) = sum(x.*x)
 
     # Parameters
     N = 30
@@ -20,7 +20,7 @@
         recombination = average, srecombination = averageSigma1,
         mutation = isotropic, smutation = isotropicSigma,
         termination = terminate, selection=:comma,
-        μ = 3, λ = P, iterations = 1000
+        μ = 3, λ = P, maxiter = 1000
     )
     result, fitness, cnt = es(sphere, N; es_params...)
     println("(3/3,$(P))-σ-SA-ES => F: $(fitness), C: $(cnt)")

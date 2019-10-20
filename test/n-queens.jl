@@ -2,7 +2,7 @@
 
     N = 8
     P = 100
-    generatePositions(N::Int) = collect(1:N)[randperm(N)]
+    generatePositions(N::Int) = randperm(N)
 
     # Vector of N cols filled with numbers from 1:N specifying row position
     function nqueens(queens::Vector{Int})
@@ -38,7 +38,7 @@
     # Testing: ES
     for muts in [inversion, insertion, swap2, scramble, shifting]
         result, fitness, cnt = es(nqueens, N;
-            initPopulation = generatePositions,
+            creation = generatePositions,
             mutation = mutationwrapper(muts),
             μ = 15, ρ = 1, λ = P)
         println("(15+$(P))-ES:$(string(muts)) => F: $(fitness), C: $(cnt), OBJ: $(result)")
