@@ -30,6 +30,8 @@ end
 function trace!(tr, iteration, objfun, state, population, method, options, curr_time=time())
     dt = Dict{String,Any}()
     dt["time"] = curr_time
+    dt["population"] = population
+
     # set additional trace value
     trace!(dt, objfun, state, population, method, options)
     update!(tr,
